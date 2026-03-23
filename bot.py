@@ -437,17 +437,20 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not call:
                 results.append(f"⚠️ {me.first_name} — group mein nahi")
                 continue
-            # pytgcalls GroupCallFactory se join karo
+            # pytgcalls GroupCallFactory se join karo - Telethon client type
             if id(c) not in pytgcalls_clients:
                 from pytgcalls import GroupCallFactory
                 from pytgcalls.group_call_type import GroupCallType
-                calls = GroupCallFactory(c, GroupCallType.FILE).get_file_group_call()
-                await calls.start(chat_id)
+                from pytgcalls.mtproto_client_type import MtProtoClientType
+                calls = GroupCallFactory(
+                    c,
+                    GroupCallType.FILE,
+                    mtproto_client_type=MtProtoClientType.TELETHON
+                ).get_file_group_call()
                 pytgcalls_clients[id(c)] = calls
-            else:
-                calls = pytgcalls_clients[id(c)]
-                await calls.start(chat_id)
 
+            calls = pytgcalls_clients[id(c)]
+            await calls.start(chat_id)
             results.append(f"✅ {me.first_name} — {me.id}")
             success += 1
         except Exception as e:
