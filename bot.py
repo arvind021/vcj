@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.WARNING)
 API_ID      = 12380656
 API_HASH    = "d927c13beaaf5110f25c505b7c071273"
 BOT_TOKEN   = "8777846753:AAFEBDqbOOIJqkf_mRY37SUdQOERvE4yu40"
-ADMIN_ID    = 7302427268        # Apna Telegram User ID
+ADMIN_ID    = 7302427268       # Apna Telegram User ID
 
 SESSIONS_DIR = "sessions"
 # ═══════════════════════════════════════════════════
@@ -76,9 +76,8 @@ async def get_join_as(client: TelegramClient, chat_id: int):
     """Sahi join_as peer banao"""
     try:
         me = await client.get_me()
-        # get_input_entity se sahi peer milta hai
-        peer = await client.get_input_entity(me.id)
-        return peer
+        from telethon.tl.types import InputPeerUser
+        return InputPeerUser(user_id=me.id, access_hash=me.access_hash)
     except Exception as e:
         print(f"get_join_as error: {e}")
         from telethon.tl.types import InputPeerSelf
@@ -438,10 +437,13 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 results.append(f"⚠️ {me.first_name} — group mein nahi")
                 continue
             join_as = await get_join_as(c, chat_id)
+            from telethon.tl.types import DataJSON
             await c(JoinGroupCallRequest(
                 call=call,
                 join_as=join_as,
-                params=None, muted=True, video_stopped=True,
+                params=DataJSON(data='{}'),
+                muted=True,
+                video_stopped=True,
             ))
             results.append(f"✅ {me.first_name} — {me.id}")
             success += 1
