@@ -437,22 +437,17 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not call:
                 results.append(f"⚠️ {me.first_name} — group mein nahi")
                 continue
-            # pytgcalls v3 se join karo
+            # pytgcalls GroupCallFactory se join karo
             if id(c) not in pytgcalls_clients:
-                from pytgcalls import PyTgCalls
-                from pytgcalls.types import MediaStream
-                calls = PyTgCalls(c)
-                await calls.start()
+                from pytgcalls import GroupCallFactory
+                from pytgcalls.group_call_type import GroupCallType
+                calls = GroupCallFactory(c, GroupCallType.FILE).get_file_group_call()
+                await calls.start(chat_id)
                 pytgcalls_clients[id(c)] = calls
             else:
-                from pytgcalls import PyTgCalls
-                from pytgcalls.types import MediaStream
                 calls = pytgcalls_clients[id(c)]
+                await calls.start(chat_id)
 
-            await calls.join_group_call(
-                chat_id,
-                MediaStream(audio_path=None, audio_flags=MediaStream.Flags.IGNORE),
-            )
             results.append(f"✅ {me.first_name} — {me.id}")
             success += 1
         except Exception as e:
