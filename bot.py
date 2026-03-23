@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.WARNING)
 API_ID      = 12380656
 API_HASH    = "d927c13beaaf5110f25c505b7c071273"
 BOT_TOKEN   = "8777846753:AAFEBDqbOOIJqkf_mRY37SUdQOERvE4yu40"
-ADMIN_ID    = 7302427268        # Apna Telegram User ID
+ADMIN_ID    = 730242726        # Apna Telegram User ID
 
 SESSIONS_DIR = "sessions"
 # ═══════════════════════════════════════════════════
@@ -211,16 +211,17 @@ async def receive_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await client.sign_in(phone=phone, code=otp, phone_code_hash=phone_code_hash)
         me = await client.get_me()
         clients.append(client)
-        del pending_logins[user_id]
+        pending_logins.pop(user_id, None)
 
+        username = me.username or 'N/A'
+        fname = (me.first_name or '') + ' ' + (me.last_name or '')
         await update.message.reply_text(
-            f"✅ *Login Ho Gaya!*\n\n"
-            f"• Naam    : {me.first_name} {me.last_name or ''}\n"
-            f"• Username: @{me.username or 'N/A'}\n"
-            f"• User ID : `{me.id}`\n"
-            f"• Session : `{session_name}`\n\n"
-            f"📊 Total loaded: *{len(clients)}*",
-            parse_mode="Markdown"
+            f"✅ Login Ho Gaya!\n\n"
+            f"Naam: {fname.strip()}\n"
+            f"Username: @{username}\n"
+            f"User ID: {me.id}\n"
+            f"Session: {session_name}\n\n"
+            f"Total loaded: {len(clients)}"
         )
         return ConversationHandler.END
 
@@ -229,15 +230,16 @@ async def receive_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 2FA password required
         if "PASSWORD_HASH_INVALID" in err or "two-step" in err.lower() or "SessionPasswordNeededError" in err:
             await update.message.reply_text(
-                "🔐 *2FA Password Required*\n\n"
-                "Apna Telegram 2FA password bhejo:",
-                parse_mode="Markdown"
+                "🔐 2FA Password Required\n\n"
+                "Apna Telegram 2FA password bhejo:"
             )
-            return PASSWORD + 1  # go to password state
+            return PASSWORD + 1
         else:
-            await update.message.reply_text(f"❌ OTP galat hai ya expire ho gaya.\n`{err}`\n\nPhir try: /addaccount", parse_mode="Markdown")
+            pending_logins.pop(user_id, None)
             await client.disconnect()
-            del pending_logins[user_id]
+            await update.message.reply_text(
+                f"❌ OTP galat hai ya expire ho gaya.\n{err}\n\nPhir try: /addaccount"
+            )
             return ConversationHandler.END
 
 
