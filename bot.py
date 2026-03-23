@@ -423,24 +423,24 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not call:
                 results.append(f"⚠️ {me.first_name} — group mein nahi")
                 continue
+            from telethon.tl.types import InputPeerSelf
             await c(JoinGroupCallRequest(
                 call=call,
-                join_as=await c.get_input_entity("me"),
+                join_as=InputPeerSelf(),
                 params=None, muted=True, video_stopped=True,
             ))
-            results.append(f"✅ {me.first_name} — `{me.id}`")
+            results.append(f"✅ {me.first_name} — {me.id}")
             success += 1
         except Exception as e:
             err = str(e)
             if "already" in err.lower():
-                results.append(f"✅ {me.first_name} — `{me.id}` (already)")
+                results.append(f"✅ {me.first_name} — {me.id} (already)")
                 success += 1
             else:
-                results.append(f"❌ {me.first_name} — {err[:40]}")
+                results.append(f"❌ {me.first_name} — {err[:60]}")
         await asyncio.sleep(1)
     await msg.edit_text(
-        f"📋 *VC Join Complete*\n✅ *{success}/{total}*\n\n" + "\n".join(results),
-        
+        f"VC Join Complete\nJoined: {success}/{total}\n\n" + "\n".join(results)
     )
 
 
