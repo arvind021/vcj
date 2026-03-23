@@ -25,13 +25,14 @@ logging.basicConfig(level=logging.WARNING)
 API_ID      = 12380656
 API_HASH    = "d927c13beaaf5110f25c505b7c071273"
 BOT_TOKEN   = "8777846753:AAFEBDqbOOIJqkf_mRY37SUdQOERvE4yu40"
-ADMIN_ID    = 7302427268       # Apna Telegram User ID
+ADMIN_ID    = 7302427268        # Apna Telegram User ID
 
 SESSIONS_DIR = "sessions"
 # ═══════════════════════════════════════════════════
 
 os.makedirs(SESSIONS_DIR, exist_ok=True)
 clients: list[TelegramClient] = []
+pytgcalls_clients: dict = {}  # client -> PyTgCalls instance
 
 # Login conversation states
 PHONE, OTP, PASSWORD = range(3)
@@ -436,25 +437,32 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not call:
                 results.append(f"⚠️ {me.first_name} — group mein nahi")
                 continue
-            join_as = await get_join_as(c, chat_id)
-            from telethon.tl.types import DataJSON
-            await c(JoinGroupCallRequest(
-                call=call,
-                join_as=join_as,
-                params=DataJSON(data='{}'),
-                muted=True,
-                video_stopped=True,
-            ))
+            # pytgcalls v3 se join karo
+            if id(c) not in pytgcalls_clients:
+                from pytgcalls import PyTgCalls
+                from pytgcalls.types import MediaStream
+                calls = PyTgCalls(c)
+                await calls.start()
+                pytgcalls_clients[id(c)] = calls
+            else:
+                from pytgcalls import PyTgCalls
+                from pytgcalls.types import MediaStream
+                calls = pytgcalls_clients[id(c)]
+
+            await calls.join_group_call(
+                chat_id,
+                MediaStream(audio_path=None, audio_flags=MediaStream.Flags.IGNORE),
+            )
             results.append(f"✅ {me.first_name} — {me.id}")
             success += 1
         except Exception as e:
             err = str(e)
-            if "already" in err.lower():
+            if "already" in err.lower() or "Already" in err:
                 results.append(f"✅ {me.first_name} — {me.id} (already)")
                 success += 1
             else:
-                results.append(f"❌ {me.first_name} — {err[:60]}")
-        await asyncio.sleep(1)
+                results.append(f"❌ {me.first_name} — {err[:80]}")
+        await asyncio.sleep(2)
     await msg.edit_text(
         f"VC Join Complete\nJoined: {success}/{total}\n\n" + "\n".join(results)
     )
