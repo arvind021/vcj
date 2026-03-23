@@ -9,6 +9,8 @@ Requirements: pip install telethon python-telegram-bot
 import asyncio
 import os
 import logging
+import random
+import string
 from telethon import TelegramClient
 from telethon.tl.functions.phone import JoinGroupCallRequest, LeaveGroupCallRequest
 from telethon.tl.functions.channels import GetFullChannelRequest, JoinChannelRequest, LeaveChannelRequest
@@ -41,6 +43,14 @@ pending_logins: dict = {}
 
 
 # ─── Helpers ────────────────────────────────────────
+
+def make_sdp() -> str:
+    """Har account ke liye unique SDP params banao"""
+    ssrc  = random.randint(100_000_000, 999_999_999)
+    ufrag = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    pwd   = ''.join(random.choices(string.ascii_letters + string.digits, k=22))
+    return f'{{"ufrag":"{ufrag}","pwd":"{pwd}","fingerprints":[],"ssrc":{ssrc}}}'
+
 
 def parse_link(link: str):
     link = link.strip()
@@ -84,14 +94,6 @@ async def get_join_as(client: TelegramClient, chat_id: int):
         return InputPeerSelf()
 
 
-def chat_label(entity) -> str:
-    if isinstance(entity, Channel):
-        return "📢 Channel" if entity.broadcast else "👥 Supergroup"
-    elif isinstance(entity, Chat):
-        return "👥 Group"
-    return "❓"
-
-
 async def load_all_sessions():
     loaded = 0
     for f in sorted(os.listdir(SESSIONS_DIR)):
@@ -123,7 +125,6 @@ def is_admin(update: Update) -> bool:
 # ─── Login Conversation ──────────────────────────────
 
 async def cmd_addaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Bot se naya account add karo"""
     if not is_admin(update):
         await update.message.reply_text("❌ Sirf admin ke liye.")
         return ConversationHandler.END
@@ -138,20 +139,16 @@ async def cmd_addaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def receive_session_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Session naam receive karo, phir phone maango"""
     if not is_admin(update):
         return ConversationHandler.END
 
     text = update.message.text.strip()
-
-    # Check duplicate
     existing = [os.path.basename(c.session.filename).replace(".session", "") for c in clients]
     if text in existing:
         await update.message.reply_text(f"⚠️ `{text}` pehle se loaded hai! Doosra naam do.")
         return PHONE
 
     context.user_data["session_name"] = text
-
     await update.message.reply_text(
         f"✅ Session naam: `{text}`\n\n"
         "📞 Ab phone number bhejo:\n"
@@ -162,7 +159,6 @@ async def receive_session_name(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def receive_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Phone number receive karo, OTP bhejo"""
     if not is_admin(update):
         return ConversationHandler.END
 
@@ -200,7 +196,6 @@ async def receive_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def receive_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """OTP receive karo aur login complete karo"""
     if not is_admin(update):
         return ConversationHandler.END
 
@@ -228,7 +223,7 @@ async def receive_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         username = me.username or 'N/A'
         fname = (me.first_name or '') + ' ' + (me.last_name or '')
         await update.message.reply_text(
-            f"✅ Login Ho Gaya!\n\n"
+            f"✅ *Login Ho Gaya!*\n\n"
             f"Naam: {fname.strip()}\n"
             f"Username: @{username}\n"
             f"User ID: `{me.id}`\n"
@@ -258,7 +253,6 @@ async def receive_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def receive_2fa_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """2FA password receive karo"""
     if not is_admin(update):
         return ConversationHandler.END
 
@@ -290,17 +284,13 @@ async def receive_2fa_password(update: Update, context: ContextTypes.DEFAULT_TYP
         return ConversationHandler.END
 
     except Exception as e:
-        await update.message.reply_text(
-            f"❌ Password galat hai.\n`{e}`",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text(f"❌ Password galat hai.\n`{e}`", parse_mode="Markdown")
         await client.disconnect()
         del pending_logins[user_id]
         return ConversationHandler.END
 
 
 async def cancel_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Login cancel karo"""
     user_id = update.effective_user.id
     if user_id in pending_logins:
         await pending_logins[user_id]["client"].disconnect()
@@ -456,15 +446,30 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             join_as = await get_join_as(c, chat_id)
 
-            await c(JoinGroupCallRequest(
-                call=call,
-                join_as=join_as,
-                params=DataJSON(
-                    data='{"ufrag":"","pwd":"","fingerprints":[],"ssrc":0}'
-                ),
-                muted=True,
-                video_stopped=True,
-            ))
+            # Retry loop — SSRC duplicate hone pe naya banao
+            last_err = None
+            for attempt in range(3):
+                try:
+                    await c(JoinGroupCallRequest(
+                        call=call,
+                        join_as=join_as,
+                        params=DataJSON(data=make_sdp()),
+                        muted=True,
+                        video_stopped=True,
+                    ))
+                    last_err = None
+                    break
+                except Exception as ex:
+                    last_err = ex
+                    err_str = str(ex)
+                    if "GROUPCALL_SSRC_DUPLICATE_MUCH" in err_str or "retry" in err_str.lower():
+                        await asyncio.sleep(1)
+                        continue
+                    raise
+
+            if last_err:
+                raise last_err
+
             results.append(f"✅ {me.first_name} — `{me.id}`")
             success += 1
 
@@ -614,7 +619,6 @@ async def main():
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Login conversation handler
     login_conv = ConversationHandler(
         entry_points=[CommandHandler("addaccount", cmd_addaccount)],
         states={
