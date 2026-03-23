@@ -441,11 +441,11 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if id(c) not in pytgcalls_clients:
                 from pytgcalls import GroupCallFactory
                 from pytgcalls.group_call_type import GroupCallType
-                from pytgcalls.mtproto_client_type import MtProtoClientType
+                from pytgcalls.mtproto_client_type import MTProtoClientType
                 calls = GroupCallFactory(
                     c,
                     GroupCallType.FILE,
-                    mtproto_client_type=MtProtoClientType.TELETHON
+                    mtproto_client_type=MTProtoClientType.TELETHON
                 ).get_file_group_call()
                 pytgcalls_clients[id(c)] = calls
 
