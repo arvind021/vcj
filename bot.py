@@ -119,7 +119,7 @@ async def cmd_addaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📱 *Naya Account Add Karo*\n\n"
         "Session naam bhejo (e.g. `acc1`, `acc2`)\n"
         "Ya /cancel karo",
-        parse_mode="Markdown"
+        
     )
     return PHONE
 
@@ -134,7 +134,7 @@ async def receive_session_name(update: Update, context: ContextTypes.DEFAULT_TYP
     # Check duplicate
     existing = [os.path.basename(c.session.filename).replace(".session", "") for c in clients]
     if text in existing:
-        await update.message.reply_text(f"⚠️ `{text}` pehle se loaded hai! Doosra naam do.", parse_mode="Markdown")
+        await update.message.reply_text(f"⚠️ `{text}` pehle se loaded hai! Doosra naam do.")
         return PHONE
 
     context.user_data["session_name"] = text
@@ -143,7 +143,7 @@ async def receive_session_name(update: Update, context: ContextTypes.DEFAULT_TYP
         f"✅ Session naam: `{text}`\n\n"
         "📞 Ab phone number bhejo:\n"
         "Format: `+919876543210`",
-        parse_mode="Markdown"
+        
     )
     return OTP
 
@@ -157,7 +157,7 @@ async def receive_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session_name = context.user_data.get("session_name", "account")
     path = os.path.join(SESSIONS_DIR, session_name)
 
-    await update.message.reply_text(f"⏳ OTP bheja ja raha hai `{phone}` pe...", parse_mode="Markdown")
+    await update.message.reply_text(f"⏳ OTP bheja ja raha hai `{phone}` pe...")
 
     try:
         client = TelegramClient(path, API_ID, API_HASH)
@@ -178,12 +178,12 @@ async def receive_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📨 Telegram pe jo OTP aaya hai wo bhejo:\n"
             "Format: `12345`\n\n"
             "_(OTP sirf tum dekh sakte ho — private chat mein bhejo)_",
-            parse_mode="Markdown"
+            
         )
         return PASSWORD
 
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: `{e}`\n\nPhir try karo /addaccount", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ Error: `{e}`\n\nPhir try karo /addaccount")
         return ConversationHandler.END
 
 
@@ -271,12 +271,12 @@ async def receive_2fa_password(update: Update, context: ContextTypes.DEFAULT_TYP
             f"• User ID : `{me.id}`\n"
             f"• Session : `{session_name}`\n\n"
             f"📊 Total loaded: *{len(clients)}*",
-            parse_mode="Markdown"
+            
         )
         return ConversationHandler.END
 
     except Exception as e:
-        await update.message.reply_text(f"❌ Password galat hai.\n`{e}`", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ Password galat hai.\n`{e}`")
         await client.disconnect()
         del pending_logins[user_id]
         return ConversationHandler.END
@@ -307,7 +307,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/leavevcall — saare VC leave\n"
         "/chatid — chat ID pao\n"
         "/help — puri list",
-        parse_mode="Markdown"
+        
     )
 
 
@@ -324,19 +324,19 @@ async def cmd_sessions(update: Update, context: ContextTypes.DEFAULT_TYPE):
             lines.append(f"{i}. {m.first_name} (@{m.username or 'N/A'}) — `{m.id}`")
         except:
             lines.append(f"{i}. (unavailable)")
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+    await update.message.reply_text("\n".join(lines))
 
 
 async def cmd_joingroupall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         return
     if not context.args:
-        await update.message.reply_text("Usage: /joingroupall `<link>`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /joingroupall `<link>`")
         return
     link = context.args[0]
     ltype, identifier = parse_link(link)
     total = len(clients)
-    msg = await update.message.reply_text(f"⏳ *{total} accounts* join ho rahe hain...", parse_mode="Markdown")
+    msg = await update.message.reply_text(f"⏳ *{total} accounts* join ho rahe hain...")
     results = []
     success = 0
     for i, c in enumerate(clients, 1):
@@ -358,7 +358,7 @@ async def cmd_joingroupall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(2)
     await msg.edit_text(
         f"📋 *Group Join Complete*\n✅ *{success}/{total}*\n\n" + "\n".join(results),
-        parse_mode="Markdown"
+        
     )
 
 
@@ -366,7 +366,7 @@ async def cmd_leavegroupall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         return
     if not context.args:
-        await update.message.reply_text("Usage: /leavegroupall `<chat_id>`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /leavegroupall `<chat_id>`")
         return
     try:
         chat_id = int(context.args[0])
@@ -374,7 +374,7 @@ async def cmd_leavegroupall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Valid chat_id dalo")
         return
     total = len(clients)
-    msg = await update.message.reply_text(f"⏳ *{total} accounts* leave kar rahe hain...", parse_mode="Markdown")
+    msg = await update.message.reply_text(f"⏳ *{total} accounts* leave kar rahe hain...")
     results = []
     success = 0
     for i, c in enumerate(clients, 1):
@@ -392,7 +392,7 @@ async def cmd_leavegroupall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(1)
     await msg.edit_text(
         f"📋 *Group Leave Complete*\n✅ *{success}/{total}*\n\n" + "\n".join(results),
-        parse_mode="Markdown"
+        
     )
 
 
@@ -400,7 +400,7 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         return
     if not context.args:
-        await update.message.reply_text("Usage: /joinvcall `<chat_id>`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /joinvcall `<chat_id>`")
         return
     try:
         chat_id = int(context.args[0])
@@ -408,7 +408,7 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Valid chat_id dalo")
         return
     total = len(clients)
-    msg = await update.message.reply_text(f"⏳ *{total} accounts* VC join kar rahe hain...", parse_mode="Markdown")
+    msg = await update.message.reply_text(f"⏳ *{total} accounts* VC join kar rahe hain...")
     if clients:
         test = await get_active_call(clients[0], chat_id)
         if not test:
@@ -440,7 +440,7 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(1)
     await msg.edit_text(
         f"📋 *VC Join Complete*\n✅ *{success}/{total}*\n\n" + "\n".join(results),
-        parse_mode="Markdown"
+        
     )
 
 
@@ -448,7 +448,7 @@ async def cmd_leavevcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         return
     if not context.args:
-        await update.message.reply_text("Usage: /leavevcall `<chat_id>`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /leavevcall `<chat_id>`")
         return
     try:
         chat_id = int(context.args[0])
@@ -456,7 +456,7 @@ async def cmd_leavevcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Valid chat_id dalo")
         return
     total = len(clients)
-    msg = await update.message.reply_text(f"⏳ *{total} accounts* VC chhod rahe hain...", parse_mode="Markdown")
+    msg = await update.message.reply_text(f"⏳ *{total} accounts* VC chhod rahe hain...")
     results = []
     success = 0
     for i, c in enumerate(clients, 1):
@@ -474,7 +474,7 @@ async def cmd_leavevcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(1)
     await msg.edit_text(
         f"📋 *VC Leave Complete*\n✅ *{success}/{total}*\n\n" + "\n".join(results),
-        parse_mode="Markdown"
+        
     )
 
 
@@ -507,7 +507,7 @@ async def cmd_loadall(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"📂 *Reload Complete*\nNaye: *{new_loaded}* | Total: *{len(clients)}*\n\n" +
         ("\n".join(results) if results else "Koi naya session nahi mila."),
-        parse_mode="Markdown"
+        
     )
 
 
@@ -515,7 +515,7 @@ async def cmd_removeaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         return
     if not context.args:
-        await update.message.reply_text("Usage: /removeaccount `<session_naam>`", parse_mode="Markdown")
+        await update.message.reply_text("Usage: /removeaccount `<session_naam>`")
         return
     sname = context.args[0].strip()
     for i, c in enumerate(clients):
@@ -526,17 +526,17 @@ async def cmd_removeaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             clients.pop(i)
             await update.message.reply_text(
                 f"✅ *Remove Ho Gaya*\n{me.first_name} — `{me.id}`\nTotal: *{len(clients)}*",
-                parse_mode="Markdown"
+                
             )
             return
-    await update.message.reply_text(f"❌ `{sname}` nahi mila.", parse_mode="Markdown")
+    await update.message.reply_text(f"❌ `{sname}` nahi mila.")
 
 
 async def cmd_chatid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     await update.message.reply_text(
         f"ℹ️ *Chat Info*\n• Title: {chat.title or 'N/A'}\n• ID: `{chat.id}`\n• Type: {chat.type}",
-        parse_mode="Markdown"
+        
     )
 
 
@@ -559,7 +559,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "*ℹ️ Utils:*\n"
         "/chatid — chat ID pao\n\n"
         "💡 Chat ID pane ke liye group mein /chatid bhejo",
-        parse_mode="Markdown"
+        
     )
 
 
