@@ -22,10 +22,10 @@ logging.basicConfig(level=logging.WARNING)
 # ═══════════════════════════════════════════════════
 # CONFIG
 # ═══════════════════════════════════════════════════
-API_ID      = 123456
-API_HASH    = "your_api_hash"
-BOT_TOKEN   = "your_bot_token"
-ADMIN_ID    = 123456789        # Apna Telegram User ID
+API_ID      = 12380656
+API_HASH    = "d927c13beaaf5110f25c505b7c071273"
+BOT_TOKEN   = "8777846753:AAFEBDqbOOIJqkf_mRY37SUdQOERvE4yu40"
+ADMIN_ID    = 7302427268        # Apna Telegram User ID
 
 SESSIONS_DIR = "sessions"
 # ═══════════════════════════════════════════════════
