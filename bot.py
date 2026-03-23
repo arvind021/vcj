@@ -56,19 +56,33 @@ def parse_link(link: str):
 
 async def get_active_call(client: TelegramClient, chat_id: int):
     try:
-        entity = await client.get_entity(chat_id)
+        entity = await client.get_entity(int(chat_id))
         if isinstance(entity, Channel):
             full = await client(GetFullChannelRequest(entity))
         elif isinstance(entity, Chat):
             full = await client(GetFullChatRequest(entity.id))
         else:
             return None
-        call = full.full_chat.call
+        call = getattr(full.full_chat, 'call', None)
         if not call:
             return None
         return InputGroupCall(id=call.id, access_hash=call.access_hash)
-    except:
+    except Exception as e:
+        print(f"get_active_call error: {e}")
         return None
+
+
+async def get_join_as(client: TelegramClient, chat_id: int):
+    """Sahi join_as peer banao"""
+    try:
+        me = await client.get_me()
+        # get_input_entity se sahi peer milta hai
+        peer = await client.get_input_entity(me.id)
+        return peer
+    except Exception as e:
+        print(f"get_join_as error: {e}")
+        from telethon.tl.types import InputPeerSelf
+        return InputPeerSelf()
 
 
 def chat_label(entity) -> str:
@@ -423,10 +437,10 @@ async def cmd_joinvcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not call:
                 results.append(f"⚠️ {me.first_name} — group mein nahi")
                 continue
-            from telethon.tl.types import InputPeerSelf
+            join_as = await get_join_as(c, chat_id)
             await c(JoinGroupCallRequest(
                 call=call,
-                join_as=InputPeerSelf(),
+                join_as=join_as,
                 params=None, muted=True, video_stopped=True,
             ))
             results.append(f"✅ {me.first_name} — {me.id}")
